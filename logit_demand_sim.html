@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logit Demand — Bertrand Duopoly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#efe9da;
+    --paper2:#e7e0cd;
+    --ink:#1d1a14;
+    --muted:#6f665322;
+    --muted-text:#6b6150;
+    --line:#cabfa3;
+    --grid:#d8cfb8;
+    --rule:#c7bda0;
+    --f1:#b23a1f;   /* firm 1 */
+    --f2:#176b73;   /* firm 2 */
+    --f0:#a07a14;   /* outside good */
+    --nash:#3a558c; /* nash benchmark */
+    --mono:#7c3f5f; /* monopoly benchmark */
+    --display:"Fraunces", Georgia, "Times New Roman", serif;
+    --body:"Spectral", Georgia, serif;
+    --num:"IBM Plex Mono", ui-monospace, "Menlo", monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:38px 22px 70px;}
+
+  header{border-bottom:2.5px solid var(--ink);padding-bottom:18px;margin-bottom:26px;}
+  .kicker{font-family:var(--num);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--f1);margin:0 0 8px;}
+  h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,5vw,52px);line-height:1.02;margin:0;letter-spacing:-.01em;}
+  h1 em{font-style:italic;font-weight:600;}
+  .sub{font-family:var(--body);color:var(--muted-text);max-width:62ch;margin:14px 0 0;font-size:16.5px;}
+
+  .formula{
+    margin:22px 0 4px;padding:18px 22px;background:var(--paper2);
+    border:1px solid var(--rule);border-left:4px solid var(--ink);
+    font-family:var(--num);font-size:16px;overflow-x:auto;white-space:nowrap;
+  }
+  .formula .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;margin:0 4px;}
+  .formula .frac .top{border-bottom:1.5px solid var(--ink);padding:0 6px 2px;}
+  .formula .frac .bot{padding:3px 6px 0;}
+  sub{font-size:.72em;}
+  sup{font-size:.72em;}
+
+  .layout{display:grid;grid-template-columns:330px 1fr;gap:26px;margin-top:30px;align-items:start;}
+  @media(max-width:860px){.layout{grid-template-columns:1fr;}}
+
+  /* ---- controls ---- */
+  .panel{background:var(--paper2);border:1px solid var(--rule);padding:20px 20px 8px;}
+  .panel h2{font-family:var(--num);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-text);margin:0 0 4px;font-weight:600;}
+  .group{margin:18px 0 14px;}
+  .group-title{font-family:var(--display);font-weight:600;font-size:14px;letter-spacing:.02em;border-bottom:1px solid var(--rule);padding-bottom:5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
+
+  .ctrl{margin-bottom:15px;}
+  .ctrl .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+  .ctrl label{font-family:var(--num);font-size:13px;}
+  .ctrl label b{font-weight:600;}
+  .ctrl .val{font-family:var(--num);font-weight:600;font-size:14px;background:var(--paper);border:1px solid var(--rule);padding:1px 7px;min-width:62px;text-align:right;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:var(--ink);outline:none;cursor:pointer;border-radius:2px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:var(--paper);border:2.5px solid var(--ink);cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--paper);border:2.5px solid var(--ink);cursor:pointer;}
+  .hint{font-family:var(--body);font-size:13px;color:var(--muted-text);font-style:italic;line-height:1.35;margin-top:2px;}
+  .reset{font-family:var(--num);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid var(--ink);padding:7px 12px;cursor:pointer;margin:6px 0 16px;color:var(--ink);transition:.15s;}
+  .reset:hover{background:var(--ink);color:var(--paper);}
+
+  /* ---- right column ---- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:var(--paper2);border:1px solid var(--rule);padding:13px 14px;position:relative;overflow:hidden;}
+  .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bar,var(--ink));}
+  .stat .k{font-family:var(--num);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-text);}
+  .stat .v{font-family:var(--num);font-weight:600;font-size:26px;line-height:1.1;margin-top:4px;letter-spacing:-.01em;}
+  .stat .x{font-family:var(--body);font-size:12.5px;color:var(--muted-text);font-style:italic;}
+
+  .benchbox{margin-top:14px;background:var(--ink);color:var(--paper);padding:16px 18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  @media(max-width:520px){.benchbox{grid-template-columns:1fr;}}
+  .benchbox .b{}
+  .benchbox .bk{font-family:var(--num);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.7;}
+  .benchbox .bv{font-family:var(--num);font-weight:600;font-size:22px;margin-top:3px;}
+  .benchbox .bx{font-family:var(--body);font-size:12px;font-style:italic;opacity:.75;margin-top:1px;}
+  .benchbox .nashc{color:#9db4e0;}
+  .benchbox .monoc{color:#d99cc0;}
+
+  .chartcard{margin-top:14px;background:var(--paper2);border:1px solid var(--rule);padding:16px 16px 10px;}
+  .tabs{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--ink);width:fit-content;}
+  .tab{font-family:var(--num);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;padding:7px 15px;cursor:pointer;background:none;border:none;color:var(--ink);border-right:1px solid var(--ink);}
+  .tab:last-child{border-right:none;}
+  .tab.on{background:var(--ink);color:var(--paper);}
+  canvas{width:100%;display:block;}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--num);font-size:12px;margin-top:8px;color:var(--muted-text);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:18px;height:3px;display:inline-block;}
+  .legend i.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 8px);}
+
+  footer{margin-top:34px;border-top:1px solid var(--rule);padding-top:14px;font-family:var(--num);font-size:11.5px;color:var(--muted-text);letter-spacing:.02em;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Multinomial logit demand · Bertrand competition</p>
+    <h1>Horizontal Differentiation &amp; <em>the Demand System</em></h1>
+    <p class="sub">An interactive read of the Calvano-style logit demand used in the LLM-collusion setting. Drive the differentiation index&nbsp;μ, the outside-good value&nbsp;a₀, and the two prices, and watch quantities, profits, and the equilibrium benchmarks respond.</p>
+    <div class="formula">
+      q<sub>i</sub> = β ·
+      <span class="frac">
+        <span class="top">e<sup>(a<sub>i</sub>−p<sub>i</sub>)/μ</sup></span>
+        <span class="bot">Σ<sub>j</sub> e<sup>(a<sub>j</sub>−p<sub>j</sub>)/μ</sup> + e<sup>a<sub>0</sub>/μ</sup></span>
+      </span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- CONTROLS -->
+    <div class="panel">
+      <h2>Parameters</h2>
+      <button class="reset" id="reset">↺ reset to Calvano</button>
+
+      <div class="group">
+        <div class="group-title"><span class="dot" style="background:var(--ink)"></span>Differentiation &amp; outside option</div>
+        <div class="ctrl" data-key="mu" data-min="0.05" data-max="2" data-step="0.01">
+          <div class="row"><label><b>μ</b> &nbsp;horizontal differentiation</label><span class="val"></span></div>
+          <input type="range">
+          <div class="hint" id="muHint"></div>
+        </div>
+        <div class="ctrl" data-key="a0" data-min="-2" data-max="4" data-step="0.05">
+          <div class="row"><label><b>a₀</b> &nbsp;outside-good value</label><span class="val"></span></div>
+          <input type="range">
+          <div class="hint">Higher a₀ → outside option more attractive → both firms lose demand.</div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title"><span class="dot" style="background:var(--f1)"></span>Firm prices</div>
+        <div class="ctrl" data-key="p1" data-min="0" data-max="4" data-step="0.01">
+          <div class="row"><label><b>p₁</b> &nbsp;price, firm 1</label><span class="val"></span></div>
+          <input type="range">
+        </div>
+        <div class="ctrl" data-key="p2" data-min="0" data-max="4" data-step="0.01">
+          <div class="row"><label><b>p₂</b> &nbsp;price, firm 2</label><span class="val"></span></div>
+          <input type="range">
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title"><span class="dot" style="background:var(--f2)"></span>Product qualities</div>
+        <div class="ctrl" data-key="a1" data-min="0" data-max="4" data-step="0.05">
+          <div class="row"><label><b>a₁</b> &nbsp;quality, firm 1</label><span class="val"></span></div>
+          <input type="range">
+        </div>
+        <div class="ctrl" data-key="a2" data-min="0" data-max="4" data-step="0.05">
+          <div class="row"><label><b>a₂</b> &nbsp;quality, firm 2</label><span class="val"></span></div>
+          <input type="range">
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title"><span class="dot" style="background:var(--f0)"></span>Cost &amp; market size</div>
+        <div class="ctrl" data-key="c" data-min="0" data-max="2" data-step="0.05">
+          <div class="row"><label><b>c</b> &nbsp;marginal cost</label><span class="val"></span></div>
+          <input type="range">
+        </div>
+        <div class="ctrl" data-key="beta" data-min="1" data-max="100" data-step="1">
+          <div class="row"><label><b>β</b> &nbsp;market size</label><span class="val"></span></div>
+          <input type="range">
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div>
+      <div class="stats">
+        <div class="stat" style="--bar:var(--f1)"><div class="k">q₁ · demand</div><div class="v" id="q1"></div><div class="x" id="s1"></div></div>
+        <div class="stat" style="--bar:var(--f2)"><div class="k">q₂ · demand</div><div class="v" id="q2"></div><div class="x" id="s2"></div></div>
+        <div class="stat" style="--bar:var(--f0)"><div class="k">q₀ · outside</div><div class="v" id="q0"></div><div class="x" id="s0"></div></div>
+        <div class="stat" style="--bar:var(--f1)"><div class="k">π₁ · profit</div><div class="v" id="pi1"></div><div class="x">(p₁ − c) · q₁</div></div>
+        <div class="stat" style="--bar:var(--f2)"><div class="k">π₂ · profit</div><div class="v" id="pi2"></div><div class="x">(p₂ − c) · q₂</div></div>
+        <div class="stat" style="--bar:var(--ink)"><div class="k">Π · industry</div><div class="v" id="piT"></div><div class="x">total profit</div></div>
+      </div>
+
+      <div class="benchbox">
+        <div class="b"><div class="bk nashc">symmetric Nash p<sup>N</sup></div><div class="bv nashc" id="nashP"></div><div class="bx" id="nashNorm"></div></div>
+        <div class="b"><div class="bk monoc">joint monopoly p<sup>M</sup></div><div class="bv monoc" id="monoP"></div><div class="bx" id="monoNorm"></div></div>
+        <div class="b"><div class="bk">collusion index Δ</div><div class="bv" id="delta"></div><div class="bx">(p̄ − p<sup>N</sup>)/(p<sup>M</sup> − p<sup>N</sup>)</div></div>
+      </div>
+
+      <div class="chartcard">
+        <div class="tabs">
+          <button class="tab on" data-view="demand">Demand · q(p₁)</button>
+          <button class="tab" data-view="profit">Profit · π₁(p₁)</button>
+        </div>
+        <canvas id="chart"></canvas>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Calvano logit · qᵢ = β·e^((aᵢ−pᵢ)/μ) / (Σⱼ e^((aⱼ−pⱼ)/μ) + e^(a₀/μ)) · benchmarks solved numerically by best-response / coordinate ascent for the current parameters.</footer>
+</div>
+
+<script>
+"use strict";
+const DEFAULTS = { mu:0.25, a0:0, p1:1.4729, p2:1.4729, a1:2, a2:2, c:1, beta:1 };
+let P = {...DEFAULTS};
+let VIEW = "demand";
+
+/* ---------- demand & profit ---------- */
+function quantities(p1, p2, p){
+  const z1 = Math.exp((p.a1 - p1)/p.mu);
+  const z2 = Math.exp((p.a2 - p2)/p.mu);
+  const w  = Math.exp(p.a0/p.mu);
+  const D  = z1 + z2 + w;
+  return { q1:p.beta*z1/D, q2:p.beta*z2/D, q0:p.beta*w/D, s1:z1/D, s2:z2/D, s0:w/D };
+}
+const prof1 = (p1,p2,p)=> (p1-p.c)*quantities(p1,p2,p).q1;
+const prof2 = (p1,p2,p)=> (p2-p.c)*quantities(p1,p2,p).q2;
+const profT = (p1,p2,p)=> prof1(p1,p2,p)+prof2(p1,p2,p);
+
+/* argmax over a price grid, with one refinement pass */
+function argmax(fn, lo, hi){
+  let best=-Infinity, bp=lo;
+  const N=400;
+  for(let k=0;k<=N;k++){ const x=lo+(hi-lo)*k/N; const v=fn(x); if(v>best){best=v;bp=x;} }
+  const step=(hi-lo)/N;
+  let lo2=bp-step, hi2=bp+step;
+  for(let k=0;k<=200;k++){ const x=lo2+(hi2-lo2)*k/200; const v=fn(x); if(v>best){best=v;bp=x;} }
+  return bp;
+}
+
+/* symmetric / general Nash by best-response iteration */
+function solveNash(p){
+  let a=p.c+0.5, b=p.c+0.5;
+  for(let it=0;it<80;it++){
+    const na = argmax(x=>prof1(x,b,p), p.c, p.c+5);
+    const nb = argmax(x=>prof2(a,x,p), p.c, p.c+5);
+    a=na; b=nb;
+  }
+  return {p1:a,p2:b};
+}
+/* joint-monopoly by coordinate ascent on total profit */
+function solveMono(p){
+  let a=p.c+1, b=p.c+1;
+  for(let it=0;it<80;it++){
+    a = argmax(x=>profT(x,b,p), p.c, p.c+5);
+    b = argmax(x=>profT(a,x,p), p.c, p.c+5);
+  }
+  return {p1:a,p2:b};
+}
+
+/* ---------- formatting ---------- */
+const f2=x=>x.toFixed(2);
+const f3=x=>x.toFixed(3);
+const fq=x=> (P.beta>5? x.toFixed(1) : x.toFixed(3));
+
+/* ---------- render ---------- */
+function render(){
+  const q = quantities(P.p1, P.p2, P);
+  document.getElementById("q1").textContent = fq(q.q1);
+  document.getElementById("q2").textContent = fq(q.q2);
+  document.getElementById("q0").textContent = fq(q.q0);
+  document.getElementById("s1").textContent = (q.s1*100).toFixed(1)+"% share";
+  document.getElementById("s2").textContent = (q.s2*100).toFixed(1)+"% share";
+  document.getElementById("s0").textContent = (q.s0*100).toFixed(1)+"% share";
+
+  const pi1=prof1(P.p1,P.p2,P), pi2=prof2(P.p1,P.p2,P);
+  document.getElementById("pi1").textContent = fq(pi1);
+  document.getElementById("pi2").textContent = fq(pi2);
+  document.getElementById("piT").textContent = fq(pi1+pi2);
+
+  const nash=solveNash(P), mono=solveMono(P);
+  const pN=(nash.p1+nash.p2)/2, pM=(mono.p1+mono.p2)/2;
+  document.getElementById("nashP").textContent = f3(pN);
+  document.getElementById("monoP").textContent = f3(pM);
+  document.getElementById("nashNorm").textContent = "pᴺ/c = "+(P.c>0? (pN/P.c).toFixed(3):"—");
+  document.getElementById("monoNorm").textContent = "pᴹ/c = "+(P.c>0? (pM/P.c).toFixed(3):"—");
+  const pbar=(P.p1+P.p2)/2;
+  const span=pM-pN;
+  const delta = Math.abs(span)>1e-6 ? (pbar-pN)/span : 0;
+  document.getElementById("delta").textContent = delta.toFixed(2);
+
+  // μ interpretation
+  const muH=document.getElementById("muHint");
+  if(P.mu<0.2) muH.textContent="Low μ → near-homogeneous goods → fierce competition, markups collapse toward c.";
+  else if(P.mu<0.6) muH.textContent="Moderate differentiation (Calvano calibration sits at μ = 0.25).";
+  else muH.textContent="High μ → strongly differentiated goods → high markups, demand less price-sensitive.";
+
+  drawChart(nash, mono);
+}
+
+/* ---------- chart ---------- */
+const cv=document.getElementById("chart"), ctx=cv.getContext("2d");
+function drawChart(nash, mono){
+  const cssW=cv.clientWidth, cssH=Math.max(300, Math.round(cssW*0.52));
+  const dpr=window.devicePixelRatio||1;
+  cv.width=cssW*dpr; cv.height=cssH*dpr; cv.style.height=cssH+"px";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const m={l:54,r:16,t:14,b:38};
+  const W=cssW-m.l-m.r, H=cssH-m.t-m.b;
+
+  // x range for p1
+  const xMin=Math.max(0, Math.min(P.c, nash.p1, P.p1)-0.4);
+  const xMax=Math.max(mono.p1, nash.p1, P.p1, P.p2)+0.8;
+
+  // sample curves
+  const N=160, xs=[];
+  let series={};
+  if(VIEW==="demand"){ series={q1:[],q2:[],q0:[]}; }
+  else { series={pi1:[]}; }
+  for(let k=0;k<=N;k++){
+    const x=xMin+(xMax-xMin)*k/N; xs.push(x);
+    if(VIEW==="demand"){
+      const qq=quantities(x, P.p2, P);
+      series.q1.push(qq.q1); series.q2.push(qq.q2); series.q0.push(qq.q0);
+    } else {
+      series.pi1.push(prof1(x, P.p2, P));
+    }
+  }
+  let yMax=0, yMin=0;
+  Object.values(series).forEach(arr=>arr.forEach(v=>{ if(v>yMax)yMax=v; if(v<yMin)yMin=v; }));
+  yMax=yMax*1.12 || 1; if(yMin>0)yMin=0; yMin*=1.12;
+
+  const X=x=>m.l+(x-xMin)/(xMax-xMin)*W;
+  const Y=y=>m.t+(1-(y-yMin)/(yMax-yMin))*H;
+
+  // grid + axes
+  ctx.strokeStyle="#cfc4a8"; ctx.fillStyle="#6b6150";
+  ctx.font='12px "IBM Plex Mono", monospace'; ctx.lineWidth=1;
+  for(let g=0; g<=4; g++){
+    const yv=yMin+(yMax-yMin)*g/4, yy=Y(yv);
+    ctx.beginPath(); ctx.moveTo(m.l,yy); ctx.lineTo(m.l+W,yy); ctx.stroke();
+    ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillText((P.beta>5?yv.toFixed(0):yv.toFixed(2)), m.l-8, yy);
+  }
+  const xticks=5;
+  ctx.textAlign="center"; ctx.textBaseline="top";
+  for(let g=0; g<=xticks; g++){
+    const xv=xMin+(xMax-xMin)*g/xticks, xx=X(xv);
+    ctx.fillText(xv.toFixed(2), xx, m.t+H+8);
+  }
+  // axis frame
+  ctx.strokeStyle="#1d1a14"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(m.l,m.t); ctx.lineTo(m.l,m.t+H); ctx.lineTo(m.l+W,m.t+H); ctx.stroke();
+  // zero line if profit dips negative
+  if(yMin<0){ const z=Y(0); ctx.strokeStyle="#1d1a1466"; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(m.l,z); ctx.lineTo(m.l+W,z); ctx.stroke(); ctx.setLineDash([]); }
+
+  // x-axis title
+  ctx.fillStyle="#1d1a14"; ctx.font='13px "IBM Plex Mono", monospace';
+  ctx.fillText("p₁  (firm 1 price, p₂ fixed at "+P.p2.toFixed(2)+")", m.l+W/2, m.t+H+22);
+
+  function plot(arr,color,w){
+    ctx.strokeStyle=color; ctx.lineWidth=w; ctx.beginPath();
+    arr.forEach((v,k)=>{ const xx=X(xs[k]), yy=Y(v); k?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy); });
+    ctx.stroke();
+  }
+  // vertical benchmark markers
+  function vline(x,color,label,dash){
+    if(x<xMin||x>xMax)return;
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.setLineDash(dash?[5,4]:[]);
+    ctx.beginPath(); ctx.moveTo(X(x),m.t); ctx.lineTo(X(x),m.t+H); ctx.stroke(); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(X(x)+4,m.t+12); ctx.fillStyle=color; ctx.font='600 11px "IBM Plex Mono", monospace';
+    ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText(label,0,0); ctx.restore();
+  }
+  vline(nash.p1, "#3a558c", "pᴺ", true);
+  vline(mono.p1, "#7c3f5f", "pᴹ", true);
+
+  if(VIEW==="demand"){
+    plot(series.q1,"#b23a1f",2.5);
+    plot(series.q2,"#176b73",2);
+    plot(series.q0,"#a07a14",2);
+  } else {
+    plot(series.pi1,"#b23a1f",2.5);
+    // best response (argmax) marker
+    const br=argmax(x=>prof1(x,P.p2,P), xMin, xMax);
+    vline(br, "#1d1a14", "BR₁", false);
+  }
+  // current p1 marker + dot
+  ctx.strokeStyle="#1d1a14"; ctx.lineWidth=1.2; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(X(P.p1),m.t); ctx.lineTo(X(P.p1),m.t+H); ctx.stroke(); ctx.setLineDash([]);
+  let yv = VIEW==="demand" ? quantities(P.p1,P.p2,P).q1 : prof1(P.p1,P.p2,P);
+  ctx.fillStyle="#b23a1f"; ctx.beginPath(); ctx.arc(X(P.p1),Y(yv),5,0,7); ctx.fill();
+  ctx.strokeStyle="#efe9da"; ctx.lineWidth=2; ctx.stroke();
+
+  // legend
+  const L=document.getElementById("legend");
+  if(VIEW==="demand"){
+    L.innerHTML='<span><i style="background:#b23a1f"></i>q₁</span>'+
+                '<span><i style="background:#176b73"></i>q₂</span>'+
+                '<span><i style="background:#a07a14"></i>q₀ outside</span>'+
+                '<span style="color:#3a558c"><i class="dash" style="color:#3a558c"></i>Nash</span>'+
+                '<span style="color:#7c3f5f"><i class="dash" style="color:#7c3f5f"></i>Monopoly</span>'+
+                '<span><i class="dash"></i>current p₁</span>';
+  } else {
+    L.innerHTML='<span><i style="background:#b23a1f"></i>π₁ = (p₁−c)·q₁</span>'+
+                '<span><i class="dash"></i>BR₁ best response</span>'+
+                '<span style="color:#3a558c"><i class="dash" style="color:#3a558c"></i>Nash</span>'+
+                '<span style="color:#7c3f5f"><i class="dash" style="color:#7c3f5f"></i>Monopoly</span>';
+  }
+}
+
+/* ---------- wire up controls ---------- */
+document.querySelectorAll(".ctrl").forEach(c=>{
+  const key=c.dataset.key, r=c.querySelector("input"), v=c.querySelector(".val");
+  r.min=c.dataset.min; r.max=c.dataset.max; r.step=c.dataset.step; r.value=P[key];
+  const show=()=> v.textContent = (Math.abs(P[key])>=10||Number.isInteger(P[key])&&P[key]>=1)? P[key].toFixed(P[key]>=10?0:2) : P[key].toFixed(2);
+  show();
+  r.addEventListener("input",()=>{ P[key]=parseFloat(r.value); show(); render(); });
+  c._set=(val)=>{ P[key]=val; r.value=val; show(); };
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  P={...DEFAULTS};
+  document.querySelectorAll(".ctrl").forEach(c=>c._set(P[c.dataset.key]));
+  render();
+});
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    t.classList.add("on"); VIEW=t.dataset.view; render();
+  });
+});
+window.addEventListener("resize",()=>render());
+render();
+</script>
+</body>
+</html>
